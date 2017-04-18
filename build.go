@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/aerth/go-buildid/elfnote"
-	"golang.org/x/debug/elf"
 	"os"
 	"path/filepath"
+
+	"github.com/aerth/go-buildid/elfnote"
+	"golang.org/x/debug/dwarf"
+	"golang.org/x/debug/elf"
 )
 
 func init() {
@@ -27,6 +29,7 @@ func init() {
 }
 
 func usage() {
+	println("go-buildid", "(https://github.com/aerth/go-buildid)")
 	println("usage:")
 	println("\t"+filepath.Base(os.Args[0]), "[elf]")
 
@@ -41,8 +44,8 @@ func main() {
 
 	p, err := New(filename)
 	if err != nil {
-	fmt.Fprintf(os.Stderr, "info: %s is not a go executable\n", filename)
-	fmt.Fprintln(os.Stderr, "fatal:", err.Error(), filename)
+		fmt.Fprintf(os.Stderr, "info: %s is not a go executable\n", filename)
+		fmt.Fprintln(os.Stderr, "fatal:", err.Error(), filename)
 		os.Exit(111)
 	}
 
@@ -79,4 +82,52 @@ func (p *Process) Notes() (note string) {
 	}
 
 	return note
+}
+
+/*
+https://github.com/sitano/goelf
+*/
+
+type Process struct {
+	path string
+
+	efd *elf.File
+	dwf *dwarf.Data
+}
+
+func New(path string) (*Process, error) {
+	var err error
+
+	p := &Process{}
+	if p.efd, err = Open(path); err != nil {
+		return nil, err
+	}
+
+	return p, nil
+}
+
+func (p *Process) DWARF() (*dwarf.Data, error) {
+	var err error
+
+	if p.dwf == nil {
+		if p.dwf, err = p.efd.DWARF(); err != nil {
+			return nil, err
+		}
+	}
+
+	return p.dwf, err
+}
+
+func Open(path string) (*elf.File, error) {
+	fd, err := os.OpenFile(path, 0, os.ModePerm)
+	if err != nil {
+		return nil, err
+	}
+
+	efd, err := elf.NewFile(fd)
+	if err != nil {
+		return nil, err
+	}
+
+	return efd, nil
 }

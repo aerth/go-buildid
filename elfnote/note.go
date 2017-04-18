@@ -9,10 +9,11 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"golang.org/x/debug/elf"
 	"io"
 	"strconv"
 	"strings"
+
+	"golang.org/x/debug/elf"
 )
 
 type NoteType uint32
